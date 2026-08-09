@@ -327,11 +327,11 @@ else
         # If DHCP failed, configure static IP
         if ! /bin/ip addr show "$NET_IF" | grep -q "inet "; then
             /bin/echo "DHCP unavailable, configuring static IP..."
-            /bin/ip addr add 192.168.100.18/24 dev "$NET_IF"
-            /bin/ip route add default via 192.168.100.1 dev "$NET_IF"
+            /bin/ip addr add 192.168.0.2/24 dev "$NET_IF"
+            /bin/ip route add default via 192.168.0.1 dev "$NET_IF"
             /bin/ip link set "$NET_IF" up
             sleep 2
-            /bin/echo "Static IP configured: 192.168.100.18/24 gw 192.168.100.1"
+            /bin/echo "Static IP configured: 192.168.0.2/24 gw 192.168.0.1"
         fi
 
         if /bin/ip addr show "$NET_IF" | grep -q "inet "; then

@@ -13,8 +13,8 @@ Bootimus（iPXE メニューサーバー）を使って、Proxmox VE 9.2 をネ�
 | 項目 | 値 |
 |------|-----|
 | Bootimus ホスト | Docker コンテナで稼働（macvlan） |
-| Bootimus IP | 192.168.100.2 |
-| サブネット | 192.168.100.0/24 |
+| Bootimus IP | 192.168.0.2 |
+| サブネット | 192.168.0.0/24 |
 | DHCP サーバー | **なし**（proxyDHCP のみ） |
 | HTTP サーバー | Bootimus 内蔵（:8080） |
 | TFTP サーバー | Bootimus 内蔵（:69） |
@@ -81,10 +81,10 @@ fi
 # If DHCP failed, configure static IP
 if ! /sbin/ip addr show "$NET_IF" | grep -q "inet "; then
     /bin/echo "DHCP failed, configuring static IP..."
-    /sbin/ip addr add 192.168.100.18/24 dev "$NET_IF"
-    /sbin/ip route add default via 192.168.100.1 dev "$NET_IF"
+    /sbin/ip addr add 192.168.0.2/24 dev "$NET_IF"
+    /sbin/ip route add default via 192.168.0.1 dev "$NET_IF"
     sleep 1
-    /bin/echo "Static IP configured: 192.168.100.18/24 gw 192.168.100.1"
+    /bin/echo "Static IP configured: 192.168.0.2/24 gw 192.168.0.1"
 fi
 
 /bin/echo "IP config: $(/sbin/ip addr show "$NET_IF" 2>&1)"
@@ -230,9 +230,9 @@ qm terminal <vmid>
 ```
 Found network interface: eth0
 Configuring static IP on eth0...
-Static IP configured: 192.168.100.18/24 gw 192.168.100.1
+Static IP configured: 192.168.0.2/24 gw 192.168.0.1
 Using disk-backed storage: /iso_disk/proxmox.iso
-Downloading ISO from http://192.168.100.2:8080/isos/... to /iso_disk/proxmox.iso
+Downloading ISO from http://192.168.0.2:8080/isos/... to /iso_disk/proxmox.iso
 ISO download successful: ...
 found proxmox ISO image inside initrd image
 preparing installer mount points and working environment
@@ -290,7 +290,7 @@ cp /tmp/squash/lib/modules/*/modules.dep \
 ┌──────────────────────────────────────────────────────────────┐
 │                     PXE Boot Flow                            │
 │                                                              │
-│  VM (PXE)                        Bootimus (192.168.100.2)   │
+│  VM (PXE)                        Bootimus (192.168.0.2)   │
 │  ┌─────────┐   DHCP/ProxyDHCP   ┌──────────┐               │
 │  │ iPXE    │◄───────────────────│ :67 UDP  │               │
 │  │         │   TFTP             │ :4011    │               │
