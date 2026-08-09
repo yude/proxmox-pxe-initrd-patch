@@ -1,0 +1,6 @@
+*.iso
+*.cpio
+*.patched
+*.bak
+*.old
+*.tmp

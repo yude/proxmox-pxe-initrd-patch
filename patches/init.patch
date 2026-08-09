@@ -1,0 +1,102 @@
+--- /tmp/original_init.txt	2026-08-09 10:14:27.240367103 +0900
++++ /tmp/final_init.txt	2026-08-09 10:14:26.995356585 +0900
+@@ -285,8 +285,8 @@
+ 
+     # --- PXE: try to fetch ISO over network ---
+     /bin/echo "Attempting to fetch ISO via network..."
+-    /bin/ip link set lo up 2>/dev/null
+-    /bin/ip addr add 127.0.0.1/8 dev lo 2>/dev/null
++    /sbin/ip link set lo up 2>/dev/null
++    /sbin/ip addr add 127.0.0.1/8 dev lo 2>/dev/null
+ 
+     # Explicitly load network drivers for common VM NICs
+     /sbin/modprobe -q e1000 2>/dev/null
+@@ -313,29 +313,38 @@
+         /bin/echo "Available /sys/class/net/: $(ls /sys/class/net/ 2>/dev/null)"
+     else
+         /bin/echo "Found network interface: $NET_IF"
+-        /bin/ip link set "$NET_IF" up 2>/dev/null
++        /sbin/ip link set "$NET_IF" up 2>/dev/null
+ 
+         # Wait for link to come up
+         sleep 2
+ 
+-        # Try DHCP first (quick timeout - may not have DHCP server)
++
++
++        # Try DHCP first
+         if [ -x /sbin/udhcpc ]; then
+             /bin/echo "Requesting DHCP on $NET_IF..."
+-            /sbin/udhcpc -i "$NET_IF" -n -q -t 3 2>/dev/null
++            /sbin/udhcpc -i "$NET_IF" -n -t 3
++            DHCP_RC=$?
++            /bin/echo "udhcpc exit code: $DHCP_RC"
++        else
++            /bin/echo "[WARN] udhcpc not found, skipping DHCP"
++            DHCP_RC=1
+         fi
+ 
+         # If DHCP failed, configure static IP
+-        if ! /bin/ip addr show "$NET_IF" | grep -q "inet "; then
+-            /bin/echo "DHCP unavailable, configuring static IP..."
+-            /bin/ip addr add 192.168.100.18/24 dev "$NET_IF"
+-            /bin/ip route add default via 192.168.100.1 dev "$NET_IF"
+-            /bin/ip link set "$NET_IF" up
+-            sleep 2
++        if ! /sbin/ip addr show "$NET_IF" | grep -q "inet "; then
++            /bin/echo "DHCP failed, configuring static IP..."
++            /sbin/ip addr add 192.168.100.18/24 dev "$NET_IF"
++            /sbin/ip route add default via 192.168.100.1 dev "$NET_IF"
++            sleep 1
+             /bin/echo "Static IP configured: 192.168.100.18/24 gw 192.168.100.1"
+         fi
+ 
+-        if /bin/ip addr show "$NET_IF" | grep -q "inet "; then
+-            /bin/echo "Network interface $NET_IF is up: $(/bin/ip addr show "$NET_IF" | grep 'inet ')"
++        /bin/echo "IP config: $(/sbin/ip addr show "$NET_IF" 2>&1)"
++        /bin/echo "Routes: $(/sbin/ip route show 2>&1)"
++
++        if /sbin/ip addr show "$NET_IF" | grep -q "inet "; then
++            /bin/echo "Network interface $NET_IF is up: $(/sbin/ip addr show "$NET_IF" | grep 'inet ')"
+             # Extract fetch= URL from kernel parameters
+             FETCH_URL=""
+             for par in $(cat /proc/cmdline); do
+@@ -347,15 +356,32 @@
+             done
+ 
+             if [ -n "$FETCH_URL" ]; then
+-                /bin/echo "Downloading ISO from $FETCH_URL to /proxmox.iso"
++                # Initramfs tmpfs too small for 1.7GB ISO - use disk
++                ISO_TARGET="/proxmox.iso"
++                if [ -b /dev/sda ]; then
++                    /bin/echo "Partitioning /dev/sda for temp ISO storage..."
++                    echo -e "o\nn\np\n1\n\n\nw" | /sbin/fdisk /dev/sda 2>/dev/null
++                    /sbin/losetup -d /dev/loop0 2>/dev/null
++                    sleep 1
++                    /sbin/mkfs.ext2 -F /dev/sda1 2>/dev/null
++                    /bin/mkdir -p /iso_disk
++                    /bin/mount -t ext2 /dev/sda1 /iso_disk 2>/dev/null
++                    if [ $? -eq 0 ]; then
++                        ISO_TARGET="/iso_disk/proxmox.iso"
++                        /bin/echo "Using disk-backed storage: $ISO_TARGET"
++                    fi
++                fi
++                /bin/echo "Downloading ISO from $FETCH_URL to $ISO_TARGET"
+                 /bin/echo "(This may take several minutes for a 1.7GB file...)"
+-                /bin/echo "Starting download..."
+-                /usr/bin/wget --tries=3 --timeout=60 -O /proxmox.iso "$FETCH_URL"
+-                if [ $? -eq 0 ] && [ -s /proxmox.iso ]; then
+-                    /bin/echo "ISO download successful: $(ls -lh /proxmox.iso)"
++                /usr/bin/wget --tries=3 --timeout=60 -O "$ISO_TARGET" "$FETCH_URL"
++                if [ $? -eq 0 ] && [ -s "$ISO_TARGET" ]; then
++                    /bin/echo "ISO download successful: $(ls -lh $ISO_TARGET)"
++                    if [ "$ISO_TARGET" != "/proxmox.iso" ]; then
++                        /bin/ln -sf "$ISO_TARGET" /proxmox.iso
++                    fi
+                 else
+                     /bin/echo "[WARN] Failed to download ISO, removing partial file"
+-                    rm -f /proxmox.iso
++                    rm -f "$ISO_TARGET"
+                 fi
+             else
+                 /bin/echo "[WARN] No fetch= parameter found in kernel cmdline"
