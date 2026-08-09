@@ -4,7 +4,7 @@ Proxmox VE 9.2 の initrd にパッチを当てて、Bootimus 経由の PXE ネ�
 
 ## 背景
 
-Bootimus（iPXE メニューサーバー）を使って Proxmox VE を PXE インストールする場合、以下の問題がある：
+[Bootimus](https://github.com/garybowers/bootimus) (iPXE メニューサーバー) を使って Proxmox VE を PXE インストールする場合、以下の問題がある:
 
 1. **`/bin/ip` が存在しない** — Proxmox の initrd 内では `ip` コマンドは `/sbin/ip` に存在する
 2. **initrd の tmpfs が小さすぎる** — 1.7GB の ISO イメージをダウンロードするのに tmpfs では容量不足
@@ -24,19 +24,19 @@ Bootimus（iPXE メニューサーバー）を使って Proxmox VE を PXE イ�
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  修正前 (Proxmox 元 init)                               │
+│  修正前                                                  │
 │                                                         │
-│  udhcpc -i eth0 -n -q -t 3 2>/dev/null  ← ハングする  │
-│  /bin/ip addr add ...                     ← 存在しない  │
-│  wget -O /proxmox.iso ...                 ← tmpfs 溢流  │
+│  udhcpc -i eth0 -n -q -t 3 2>/dev/null  ← ハングする      │
+│  /bin/ip addr add ...                     ← 存在しない    │
+│  wget -O /proxmox.iso ...                 ← tmpfs 溢流   │
 └─────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────┐
 │  修正後                                                  │
 │                                                         │
-│  udhcpc -i eth0 -n -t 3                   ← ログ出力有  │
+│  udhcpc -i eth0 -n -t 3                   ← ログ出力有    │
 │  /sbin/ip addr add ...                     ← パス修正    │
-│  fdisk /dev/sda + mkfs.ext2               ← disk利用    │
+│  fdisk /dev/sda + mkfs.ext2               ← disk利用     │
 │  wget -O /iso_disk/proxmox.iso ...        ← disk DL     │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -48,7 +48,7 @@ Bootimus（iPXE メニューサーバー）を使って Proxmox VE を PXE イ�
 - Bootimus コンテナ内で `zstd`, `cpio`, `fdisk`, `mkfs.ext2` が利用可能であること
 - Proxmox VE 9.2 の ISO が Bootimus にアップロード済みであること
 
-### 方法1: スクリプトを使う
+### 方法 1: スクリプトを使う
 
 ```bash
 # パッチ済み initrd を作成
@@ -57,7 +57,7 @@ Bootimus（iPXE メニューサーバー）を使って Proxmox VE を PXE イ�
 # 出力: /data/isos/proxmox-ve_9.2-1/initrd.patched
 ```
 
-### 方法2: 手動でパッチを適用
+### 方法 2: 手動でパッチを適用
 
 ```bash
 # initrd を展開
@@ -122,3 +122,16 @@ ping <vm-ip>
 - `/dev/sda` は ISO ダウンロードの一時保存先として使用される。Proxmox インストーラーは後にディスクを再パーティションするため、問題ない
 - 静的 IP フォールバックのアドレス (`192.168.0.2`) は環境に合わせて `patches/init.patch` を修正すること
 - e1000 ドライバーが initrd に含まれていない場合は、Proxmox ISO 内の squashfs から抽出して追加が必要
+
+## スクリーンショット
+
+![alt text](<docs/スクリーンショット 2026-08-09 10.21.30.png>)
+![alt text](<docs/スクリーンショット 2026-08-09 10.21.32.png>)
+![alt text](<docs/スクリーンショット 2026-08-09 10.21.37.png>)
+![alt text](<docs/スクリーンショット 2026-08-09 10.21.46.png>)
+![alt text](<docs/スクリーンショット 2026-08-09 10.21.56.png>)
+![alt text](<docs/スクリーンショット 2026-08-09 10.22.04.png>)
+
+## License
+
+MIT
