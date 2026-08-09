@@ -94,6 +94,8 @@ proxmox-pxe-initrd-patch/
 initrd=initrd boot=live priority=critical ip=dhcp fetch=http://<bootimus-ip>:8080/isos/proxmox-ve_9.2-1.iso console=ttyS0
 ```
 
+![alt text](<docs/スクリーンショット 2026-08-09 10.26.06.png>)
+
 ## VM の要件
 
 | 項目 | 設定 |
